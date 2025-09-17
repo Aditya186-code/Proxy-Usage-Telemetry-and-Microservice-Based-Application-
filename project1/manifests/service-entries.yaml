@@ -1,0 +1,30 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: vendor-a-proxy
+  namespace: crawlers
+spec:
+  hosts:
+  - proxy.vendor-a.com   # the proxy domain
+  ports:
+  - number: 8888
+    name: http-proxy
+    protocol: HTTP       # pod is speaking HTTP to the proxy
+  resolution: DNS
+  location: MESH_EXTERNAL
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: vendor-b-proxy
+  namespace: crawlers
+spec:
+  hosts:
+  - proxy.vendor-b.com   # the proxy domain
+  ports:
+  - number: 8889
+    name: http-proxy-2
+    protocol: TCP       # pod is speaking HTTP to the proxy
+  resolution: DNS
+  location: MESH_EXTERNAL
+

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crawler-vendor-a
+  namespace: crawlers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crawler-vendor-a
+  template:
+    metadata:
+      labels:
+        app: crawler-vendor-a
+    spec:
+      containers:
+      - name: crawler
+        image: curlimages/curl:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          while true; do
+            curl -x "http://proxy.vendor-a.com:8888" \
+                 -H "X-Vendor: proxy.vendor-a.com:8888" \
+                 "http://example.com"
+            sleep $((1 + RANDOM % 5))
+          done

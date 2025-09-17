@@ -1,6 +1,6 @@
 # Architecture
 
-![Diagram](./project1/project1.png)
+![Diagram](./project1.png)
 
 ## Installation
 

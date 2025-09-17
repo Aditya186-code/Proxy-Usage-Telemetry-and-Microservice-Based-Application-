@@ -1,0 +1,27 @@
+# db-init-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-init
+  namespace: microservices-app
+spec:
+  template:
+    spec:
+      containers:
+      - name: db-init
+        image: postgres:13
+        command: ["psql", "-h", "postgres-service", "-U", "postgres", "-d", "myapp", "-f", "/docker-entrypoint-initdb.d/init.sql"]
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DB_PASSWORD
+        volumeMounts:
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d
+      restartPolicy: OnFailure
+      volumes:
+      - name: init-script
+        configMap:
+          name: init-sql-config

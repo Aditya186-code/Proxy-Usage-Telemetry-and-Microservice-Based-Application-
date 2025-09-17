@@ -1,0 +1,14 @@
+# init-sql-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: init-sql-config
+  namespace: microservices-app
+data:
+  init.sql: |
+    CREATE TABLE IF NOT EXISTS jobs (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );

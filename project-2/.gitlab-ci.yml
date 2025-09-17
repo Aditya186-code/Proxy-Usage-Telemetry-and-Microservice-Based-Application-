@@ -1,0 +1,152 @@
+stages:
+  - build
+  - test
+  - deploy
+  - rollback
+
+variables:
+  # Docker image registry
+  REGISTRY: $CI_REGISTRY
+  # Kubernetes namespace
+  K8S_NAMESPACE: microservices-app
+  # Docker image tag (using commit SHA)
+  DOCKER_TAG: $CI_COMMIT_SHA
+  # Previous deployment tag (for rollback)
+  PREVIOUS_TAG: $CI_COMMIT_BEFORE_SHA
+
+# Build stage
+build-api:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_DRIVER: overlay2
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $REGISTRY/api-service:$DOCKER_TAG ./api-service
+    - docker push $REGISTRY/api-service:$DOCKER_TAG
+    - docker tag $REGISTRY/api-service:$DOCKER_TAG $REGISTRY/api-service:latest
+    - docker push $REGISTRY/api-service:latest
+  only:
+    changes:
+      - api-service/**/*
+
+build-worker:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_DRIVER: overlay2
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $REGISTRY/worker-service:$DOCKER_TAG ./worker-service
+    - docker push $REGISTRY/worker-service:$DOCKER_TAG
+    - docker tag $REGISTRY/worker-service:$DOCKER_TAG $REGISTRY/worker-service:latest
+    - docker push $REGISTRY/worker-service:latest
+  only:
+    changes:
+      - worker-service/**/*
+
+build-frontend:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_DRIVER: overlay2
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $REGISTRY/frontend-service:$DOCKER_TAG ./frontend-service
+    - docker push $REGISTRY/frontend-service:$DOCKER_TAG
+    - docker tag $REGISTRY/frontend-service:$DOCKER_TAG $REGISTRY/frontend-service:latest
+    - docker push $REGISTRY/frontend-service:latest
+  only:
+    changes:
+      - frontend-service/**/*
+
+# Deploy stage
+deploy:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    # Configure kubectl
+    - kubectl config set-cluster k8s --server="$KUBE_URL" --insecure-skip-tls-verify=true
+    - kubectl config set-credentials gitlab --token="$KUBE_TOKEN"
+    - kubectl config set-context default --cluster=k8s --user=gitlab
+    - kubectl config use-context default
+    
+    # Update image tags in deployments
+    - sed -i "s|your-registry/api-service:latest|$REGISTRY/api-service:$DOCKER_TAG|g" k8s/api-deployment.yaml
+    - sed -i "s|your-registry/worker-service:latest|$REGISTRY/worker-service:$DOCKER_TAG|g" k8s/worker-deployment.yaml
+    - sed -i "s|your-registry/frontend-service:latest|$REGISTRY/frontend-service:$DOCKER_TAG|g" k8s/frontend-deployment.yaml
+    
+    # Apply all manifests
+    - kubectl apply -f k8s/namespace.yaml
+    - kubectl apply -f k8s/configmap.yaml
+    - kubectl apply -f k8s/secret.yaml
+    - kubectl apply -f k8s/postgres-pvc.yaml
+    - kubectl apply -f k8s/redis-pvc.yaml
+    - kubectl apply -f k8s/postgres-deployment.yaml
+    - kubectl apply -f k8s/postgres-service.yaml
+    - kubectl apply -f k8s/redis-deployment.yaml
+    - kubectl apply -f k8s/redis-service.yaml
+    - kubectl apply -f k8s/api-deployment.yaml
+    - kubectl apply -f k8s/api-service.yaml
+    - kubectl apply -f k8s/worker-deployment.yaml
+    - kubectl apply -f k8s/worker-service.yaml
+    - kubectl apply -f k8s/frontend-deployment.yaml
+    - kubectl apply -f k8s/frontend-service.yaml
+    - kubectl apply -f k8s/ingress.yaml
+    - kubectl apply -f k8s/api-hpa.yaml
+    - kubectl apply -f k8s/worker-hpa.yaml
+    - kubectl apply -f k8s/frontend-hpa.yaml
+    
+    # Wait for deployments to be ready
+    - kubectl wait --for=condition=available --timeout=300s deployment/api-service -n $K8S_NAMESPACE
+    - kubectl wait --for=condition=available --timeout=300s deployment/worker-service -n $K8S_NAMESPACE
+    - kubectl wait --for=condition=available --timeout=300s deployment/frontend-service -n $K8S_NAMESPACE
+    
+    # Create database initialization job
+    - kubectl apply -f k8s/init-sql-configmap.yaml
+    - kubectl apply -f k8s/db-init-job.yaml
+    
+    # Store current deployment info for rollback
+    - echo "CURRENT_TAG=$DOCKER_TAG" > deployment_info.env
+    - echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> deployment_info.env
+  artifacts:
+    reports:
+      dotenv: deployment_info.env
+  only:
+    - main
+  environment:
+    name: production
+    url: http://$KUBE_INGRESS_URL
+
+# Rollback stage
+rollback:
+  stage: rollback
+  image: bitnami/kubectl:latest
+  script:
+    # Configure kubectl
+    - kubectl config set-cluster k8s --server="$KUBE_URL" --insecure-skip-tls-verify=true
+    - kubectl config set-credentials gitlab --token="$KUBE_TOKEN"
+    - kubectl config set-context default --cluster=k8s --user=gitlab
+    - kubectl config use-context default
+    
+    # Rollback each deployment to previous revision
+    - kubectl rollout undo deployment/api-service -n $K8S_NAMESPACE
+    - kubectl rollout undo deployment/worker-service -n $K8S_NAMESPACE
+    - kubectl rollout undo deployment/frontend-service -n $K8S_NAMESPACE
+    
+    # Wait for rollback to complete
+    - kubectl rollout status deployment/api-service -n $K8S_NAMESPACE --timeout=300s
+    - kubectl rollout status deployment/worker-service -n $K8S_NAMESPACE --timeout=300s
+    - kubectl rollout status deployment/frontend-service -n $K8S_NAMESPACE --timeout=300s
+  when: manual
+  only:
+    - main
+  environment:
+    name: production
+    action: stop

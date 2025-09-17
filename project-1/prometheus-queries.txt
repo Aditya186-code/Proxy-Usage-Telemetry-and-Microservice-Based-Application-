@@ -1,3 +1,4 @@
+#HTTP BASED TRAFFIC
 sum by (vendor_header, pod, namespace, destination_service) (
   istio_requests_total
 )
@@ -10,10 +11,15 @@ sum by (vendor_header, pod, namespace, destination_service) (
   istio_response_bytes_sum
 )
 
+#HTTPS BASED TRAFFIC
 sum by (pod, namespace, destination_service) (
   istio_tcp_connections_opened_total
 )
 
 sum by (pod, namespace, destination_service) (
   istio_tcp_sent_bytes_total
+)
+
+sum by (vendor_header, pod, namespace, destination_service) (
+  istio_tcp_received_bytes_total
 )

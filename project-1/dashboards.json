@@ -1,0 +1,71 @@
+{
+  "id": null,
+  "title": "Istio Traffic Dashboard (HTTP/HTTPS)",
+  "tags": ["istio", "traffic", "minikube"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "HTTP Requests per Service",
+      "targets": [
+        {
+          "expr": "sum by (vendor_header, pod, namespace, destination_service) (istio_requests_total)",
+          "legendFormat": "{{vendor_header}} | {{pod}} | {{namespace}} | {{destination_service}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Request Bytes",
+      "targets": [
+        {
+          "expr": "sum by (vendor_header, pod, namespace, destination_service) (istio_request_bytes_sum)",
+          "legendFormat": "{{vendor_header}} | {{pod}} | {{namespace}} | {{destination_service}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Response Bytes",
+      "targets": [
+        {
+          "expr": "sum by (vendor_header, pod, namespace, destination_service) (istio_response_bytes_sum)",
+          "legendFormat": "{{vendor_header}} | {{pod}} | {{namespace}} | {{destination_service}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "TCP Connections Opened",
+      "targets": [
+        {
+          "expr": "sum by (pod, namespace, destination_service) (istio_tcp_connections_opened_total)",
+          "legendFormat": "{{pod}} | {{namespace}} | {{destination_service}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "TCP Sent Bytes",
+      "targets": [
+        {
+          "expr": "sum by (pod, namespace, destination_service) (istio_tcp_sent_bytes_total)",
+          "legendFormat": "{{pod}} | {{namespace}} | {{destination_service}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "TCP Received Bytes",
+      "targets": [
+        {
+          "expr": "sum by (vendor_header, pod, namespace, destination_service) (istio_tcp_received_bytes_total)",
+          "legendFormat": "{{vendor_header}} | {{pod}} | {{namespace}} | {{destination_service}}"
+        }
+      ]
+    }
+  ]
+}

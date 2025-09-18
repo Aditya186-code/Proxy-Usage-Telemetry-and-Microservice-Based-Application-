@@ -69,4 +69,6 @@ sum by (vendor_header, pod, namespace, destination_service) (
   istio_tcp_received_bytes_total
 )
 ```
+3. Dashboard
 
+Import dashboards.json in grafana for viewing the dashboard

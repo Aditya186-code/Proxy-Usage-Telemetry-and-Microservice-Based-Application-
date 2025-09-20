@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - crawler-a-deployment.yaml
+  - crawler-b-deployment.yaml
+  - service-entry.yaml
+  - telemetry.yaml
+
+namePrefix: crawler-
+namespace: crawlers
+
+labels:
+  - pairs:
+      app: crawler-system
+      component: web-crawler
+      managed-by: kustomize

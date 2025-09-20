@@ -1,0 +1,17 @@
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: namespace-metrics
+  namespace: crawlers
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+    overrides:
+    - tagOverrides:
+        request_method:
+          value: "request.method"
+        request_host:
+          value: "request.host"
+        vendor_header:
+          value: request.headers["x-vendor"]

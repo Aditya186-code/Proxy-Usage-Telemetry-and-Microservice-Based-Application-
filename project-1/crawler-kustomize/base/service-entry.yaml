@@ -1,0 +1,29 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: vendor-a-proxy
+  namespace: crawlers
+spec:
+  hosts:
+  - proxy.vendor-a.com
+  ports:
+  - number: 8888
+    name: http-proxy
+    protocol: HTTP
+  resolution: DNS
+  location: MESH_EXTERNAL
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: vendor-b-proxy
+  namespace: crawlers
+spec:
+  hosts:
+  - proxy.vendor-b.com
+  ports:
+  - number: 8889
+    name: https-proxy
+    protocol: TCP
+  resolution: DNS
+  location: MESH_EXTERNAL

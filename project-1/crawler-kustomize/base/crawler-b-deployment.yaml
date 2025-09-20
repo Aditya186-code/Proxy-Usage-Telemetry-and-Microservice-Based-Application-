@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vendor-b
+  namespace: crawlers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vendor-b
+  template:
+    metadata:
+      labels:
+        app: vendor-b
+        version: v1
+    spec:
+      containers:
+      - name: crawler
+        image: curlimages/curl:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          while true; do
+            curl -x "http://proxy.vendor-b.com:8889" \
+                 -H "X-Vendor: proxy.vendor-a.com:8889" \
+                 "https://example.com"
+            sleep $((1 + RANDOM % 5))
+          done
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        env:
+        - name: PROXY_HOST
+          value: "proxy.vendor-b.com"
+        - name: PROXY_PORT
+          value: "8889"
